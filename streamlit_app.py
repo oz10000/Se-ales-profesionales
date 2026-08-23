@@ -163,10 +163,35 @@ col3.metric("🔴 SHORT", shorts)
 col4.metric("✅ Aprobados (score≥30)", approved)
 
 # ============================================================
-# TOP 1 LONG y SHORT
+# TOP 1 LONG y SHORT — SIEMPRE SE MUESTRAN, INCLUSO SI NO ESTÁN APROBADOS
 # ============================================================
 top_long = scanner.get_top_long()
 top_short = scanner.get_top_short()
+
+# Si no hay LONG, mostrar el mejor activo con dirección LONG (aunque sea 0) o el que tenga mayor score
+if top_long is None:
+    # Buscar entre todos los activos el que tenga direction LONG (aunque sea 0) o el mayor score entre los NEUTRAL?
+    # Mejor: mostrar el primer activo de la lista que tenga direction LONG, o si no, el que tenga mayor score absoluto
+    candidates = [s for s in signals if s['direction'] == 'LONG']
+    if candidates:
+        top_long = candidates[0]  # ya vienen ordenados por score
+    else:
+        # Si no hay ningún LONG, mostrar el activo con mayor score (aunque sea NEUTRAL) como "mejor LONG potencial"
+        if signals:
+            top_long = signals[0]
+            # forzamos direction para que se muestre como "LONG (potencial)"
+            top_long = top_long.copy()
+            top_long['direction'] = 'LONG (potencial)'
+
+if top_short is None:
+    candidates = [s for s in signals if s['direction'] == 'SHORT']
+    if candidates:
+        top_short = candidates[0]
+    else:
+        if signals:
+            top_short = signals[0]
+            top_short = top_short.copy()
+            top_short['direction'] = 'SHORT (potencial)'
 
 col_long, col_short = st.columns(2)
 
@@ -181,10 +206,10 @@ with col_long:
         **Trailing activation:** ${top_long['trailing_activation']:.4f}  
         **Trailing distance:** ${top_long['trailing_distance']:.4f}  
         **⏱️ Tiempo estimado:** {top_long.get('time_to_entry', 'N/A')}  
-        **Razones:** {', '.join(top_long.get('reasons', ['Sin condiciones']))}
+        **Razones:** {', '.join(top_long.get('reasons', ['Sin condiciones claras']))}
         """)
     else:
-        st.info("No hay señales LONG activas")
+        st.info("No hay ningún activo con dirección LONG. Se mostrará el mejor candidato cuando aparezca.")
 
 with col_short:
     st.subheader("🏆 TOP 1 SHORT")
@@ -197,15 +222,15 @@ with col_short:
         **Trailing activation:** ${top_short['trailing_activation']:.4f}  
         **Trailing distance:** ${top_short['trailing_distance']:.4f}  
         **⏱️ Tiempo estimado:** {top_short.get('time_to_entry', 'N/A')}  
-        **Razones:** {', '.join(top_short.get('reasons', ['Sin condiciones']))}
+        **Razones:** {', '.join(top_short.get('reasons', ['Sin condiciones claras']))}
         """)
     else:
-        st.info("No hay señales SHORT activas")
+        st.info("No hay ningún activo con dirección SHORT. Se mostrará el mejor candidato cuando aparezca.")
 
 # ============================================================
-# RANKING COMPLETO
+# RANKING COMPLETO — TODOS LOS ACTIVOS, APROBADOS O NO
 # ============================================================
-st.subheader("📋 Ranking completo de activos")
+st.subheader("📋 Ranking completo de activos (todos, aprobados o no)")
 
 if signals:
     df = pd.DataFrame(signals)
@@ -230,7 +255,7 @@ else:
     st.info("No hay datos de activos")
 
 # ============================================================
-# GRÁFICO DEL TOP 1
+# GRÁFICO DEL TOP 1 (opcional)
 # ============================================================
 selected_asset = None
 if top_long and top_short:
