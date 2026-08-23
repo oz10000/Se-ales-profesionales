@@ -31,7 +31,10 @@ class UniverseEngine:
             for sym in symbols:
                 ticker = tickers.get(sym)
                 if ticker and ticker.get('quoteVolume'):
-                    vol = float(ticker['quoteVolume'])
+                    try:
+                        vol = float(ticker['quoteVolume'])
+                    except (ValueError, TypeError):
+                        vol = 0
                     if vol >= self.min_volume:
                         volumes.append((sym, vol))
 
@@ -44,5 +47,5 @@ class UniverseEngine:
             print(f"Error obteniendo universo: {e}")
             # Fallback: activos conocidos
             self.assets = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
-                           'ADA/USDT', 'LINK/USDT', 'AVAX/USDT', 'DOGE/USDT']
+                           'ADA/USDT', 'LINK/USDT', 'AVAX/USDT', 'DOGE/USDT', 'AR/USDT']
             return self.assets
