@@ -18,11 +18,14 @@ class SignalEngine:
         Retorna señal si hay condiciones de entrada.
         score: 0-100
         """
+        if not indicators:
+            return None
+
         close = df['close'].values
         high = df['high'].values
         low = df['low'].values
 
-        current_price = close[-1]
+        current_price = indicators['current_price']
         atr = indicators['atr']
         adx = indicators['adx']
         ker = indicators['ker']
@@ -38,45 +41,45 @@ class SignalEngine:
         volume_ratio = indicators['volume'] / indicators['avg_volume'] if indicators['avg_volume'] > 0 else 1.0
 
         # Score base
-        score = 0.0
         reasons = []
         direction = 'NEUTRAL'
         entry = current_price
 
         # ---- Evaluación LONG ----
         long_score = 0.0
+        long_reasons = []
         # Tendencia alcista
         if ema_fast > ema_slow:
             long_score += 20
-            reasons.append("EMA fast > slow (tendencia alcista)")
+            long_reasons.append("EMA fast > slow (tendencia alcista)")
         # ADX > 25 (tendencia fuerte)
         if adx > 25:
             long_score += 15
-            reasons.append(f"ADX fuerte ({adx:.1f})")
+            long_reasons.append(f"ADX fuerte ({adx:.1f})")
         # KER > 0.4 (tendencia eficiente)
         if ker > 0.4:
             long_score += 15
-            reasons.append(f"KER eficiente ({ker:.2f})")
+            long_reasons.append(f"KER eficiente ({ker:.2f})")
         # Retroceso a soporte (precio cerca de soporte)
-        distance_to_support = (current_price - support) / current_price
+        distance_to_support = (current_price - support) / current_price if current_price > 0 else 1
         if distance_to_support < 0.02 and current_price > support:
             long_score += 20
-            reasons.append("Retroceso a soporte")
+            long_reasons.append("Retroceso a soporte")
         # Volumen de confirmación
         if volume_ratio > 1.5:
             long_score += 15
-            reasons.append(f"Volumen +{volume_ratio:.1f}x promedio")
+            long_reasons.append(f"Volumen +{volume_ratio:.1f}x promedio")
         # Momentum positivo
         if momentum > 0.5:
             long_score += 10
-            reasons.append("Momentum positivo")
+            long_reasons.append("Momentum positivo")
         # Rechazo en vela (sombra inferior larga)
         last_candle = df.iloc[-1]
         body = abs(last_candle['close'] - last_candle['open'])
         lower_shadow = min(last_candle['open'], last_candle['close']) - last_candle['low']
-        if lower_shadow > body * 0.5:
+        if lower_shadow > body * 0.5 and body > 0:
             long_score += 5
-            reasons.append("Rechazo (sombra inferior)")
+            long_reasons.append("Rechazo (sombra inferior)")
 
         # ---- Evaluación SHORT ----
         short_score = 0.0
@@ -91,7 +94,7 @@ class SignalEngine:
             short_score += 15
             short_reasons.append(f"KER eficiente ({ker:.2f})")
         # Retroceso a resistencia
-        distance_to_resistance = (resistance - current_price) / current_price
+        distance_to_resistance = (resistance - current_price) / current_price if current_price > 0 else 1
         if distance_to_resistance < 0.02 and current_price < resistance:
             short_score += 20
             short_reasons.append("Retroceso a resistencia")
@@ -103,17 +106,18 @@ class SignalEngine:
             short_reasons.append("Momentum negativo")
         # Rechazo en vela (sombra superior larga)
         upper_shadow = last_candle['high'] - max(last_candle['open'], last_candle['close'])
-        if upper_shadow > body * 0.5:
+        if upper_shadow > body * 0.5 and body > 0:
             short_score += 5
             short_reasons.append("Rechazo (sombra superior)")
 
         # Decidir dirección
-        if long_score > short_score and long_score >= self.threshold_weak * 100:
+        threshold = self.threshold_weak * 100
+        if long_score > short_score and long_score >= threshold:
             direction = 'LONG'
             score = long_score
-            reasons = reasons[:5]
+            reasons = long_reasons[:5]
             entry = support + atr * 0.2  # entrada ligeramente por encima del soporte
-        elif short_score > long_score and short_score >= self.threshold_weak * 100:
+        elif short_score > long_score and short_score >= threshold:
             direction = 'SHORT'
             score = short_score
             reasons = short_reasons[:5]
