@@ -14,6 +14,8 @@ from indicators import calculate_atr, calculate_adx, calculate_ker, calculate_em
 
 class Scanner:
     def __init__(self, config: dict):
+        if not config:
+            raise ValueError("Configuración vacía o inválida")
         self.config = config
         self.universe = UniverseEngine(config)
         self.signal_engine = SignalEngine(config)
@@ -68,7 +70,8 @@ class Scanner:
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
             df.set_index('timestamp', inplace=True)
             return df
-        except Exception:
+        except Exception as e:
+            print(f"Error fetching {asset}: {e}")
             return None
 
     def _compute_indicators(self, df: pd.DataFrame) -> dict:
@@ -76,6 +79,10 @@ class Scanner:
         low = df['low'].values
         close = df['close'].values
         volume = df['volume'].values
+
+        # Validar datos suficientes
+        if len(close) < 50:
+            return {}
 
         return {
             'adx': calculate_adx(high, low, close, 14),
@@ -85,8 +92,8 @@ class Scanner:
             'ema_fast': calculate_ema(close, 20),
             'ema_slow': calculate_ema(close, 50),
             'momentum': (close[-1] / close[-6] - 1) * 100 if len(close) > 5 else 0,
-            'volume': np.mean(volume[-20:]),
-            'avg_volume': np.mean(volume[-50:]),
+            'volume': np.mean(volume[-20:]) if len(volume) >= 20 else 0,
+            'avg_volume': np.mean(volume[-50:]) if len(volume) >= 50 else 1,
             'current_price': close[-1],
             'high': high[-1],
             'low': low[-1],
