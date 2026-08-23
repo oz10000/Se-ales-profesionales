@@ -15,13 +15,12 @@ class RiskEngine:
         self.default_rr = config['risk']['default_rr']
 
     def calculate(self, asset: str, indicators: dict, signal: dict) -> dict:
-        """Calcula SL, TP, R:R y parámetros de trailing"""
         entry = signal['entry']
         atr = indicators.get('atr', 0.01)
         direction = signal['direction']
 
         if atr <= 0:
-            atr = entry * 0.01  # fallback si ATR es 0
+            atr = entry * 0.01
 
         if direction == 'LONG':
             sl = entry - atr * self.sl_multiplier
@@ -33,7 +32,6 @@ class RiskEngine:
             sl = entry * 0.98
             tp = entry * 1.02
 
-        # R:R
         if direction == 'LONG':
             rr = (tp - entry) / (entry - sl) if (entry - sl) > 0 else 0
         else:
@@ -41,17 +39,17 @@ class RiskEngine:
 
         # Trailing stop
         if direction == 'LONG':
-            trailing_activation_price = entry + (tp - entry) * self.trailing_activation
-            trailing_distance_price = atr * self.trailing_distance
+            trailing_activation = entry + (tp - entry) * self.trailing_activation
+            trailing_distance = atr * self.trailing_distance
         else:
-            trailing_activation_price = entry - (entry - tp) * self.trailing_activation
-            trailing_distance_price = atr * self.trailing_distance
+            trailing_activation = entry - (entry - tp) * self.trailing_activation
+            trailing_distance = atr * self.trailing_distance
 
         return {
             'sl': sl,
             'tp': tp,
             'rr': rr,
-            'trailing_activation': trailing_activation_price,
-            'trailing_distance': trailing_distance_price,
+            'trailing_activation': trailing_activation,
+            'trailing_distance': trailing_distance,
             'leverage_recommended': min(self.max_leverage, 1.0 / (atr / entry * 3))
         }
