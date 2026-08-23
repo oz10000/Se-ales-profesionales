@@ -1,0 +1,67 @@
+# DAPS-SIGNALS Ω X10 ULTRA Configuration
+# Este archivo es OBLIGATORIO para que el sistema funcione
+
+system:
+  name: "DAPS-SIGNALS Ω X10 ULTRA"
+  version: "2.0"
+  mode: "production"   # production | paper | backtest
+
+exchanges:
+  binance:
+    spot: true
+    futures: true
+  okx:
+    spot: false
+  bybit:
+    spot: false
+
+universe:
+  max_assets: 25                # top N por volumen
+  min_volume_usdt: 5000000      # volumen mínimo 24h en USDT
+  min_candles: 500              # mínimo histórico de velas
+  max_spread: 0.0025            # spread máximo (0.25%)
+  markets:
+    - spot
+    - futures
+
+indicators:
+  adx_period: 14
+  ker_period: 10
+  atr_period: 14
+  rsi_period: 14
+  ema_fast: 20
+  ema_slow: 50
+  momentum_period: 5
+  volume_ma_period: 20
+
+scoring:
+  weights:
+    trend: 0.22
+    strength: 0.18
+    efficiency: 0.18
+    volatility: 0.12
+    momentum: 0.18
+    volume: 0.12
+  thresholds:
+    strong: 0.70
+    good: 0.50
+    weak: 0.30
+
+risk:
+  default_rr: 2.5
+  sl_multiplier: 1.0           # distancia SL = ATR * sl_multiplier
+  tp_multiplier: 2.5           # distancia TP = ATR * tp_multiplier
+  trailing_activation: 0.5     # % del TP alcanzado para activar trailing
+  trailing_distance: 1.0       # distancia trailing en ATR
+  max_leverage: 1.5
+  max_drawdown: 0.10
+
+backtest:
+  walk_forward_train: 180      # días
+  walk_forward_test: 30
+  walk_forward_step: 15
+  monte_carlo_sims: 5000
+  bootstrap_samples: 1000
+
+streamlit:
+  refresh_seconds: 300
