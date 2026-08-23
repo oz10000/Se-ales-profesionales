@@ -7,12 +7,13 @@ import numpy as np
 class RiskEngine:
     def __init__(self, config: dict):
         self.config = config
-        self.sl_multiplier = config['risk']['sl_multiplier']
-        self.tp_multiplier = config['risk']['tp_multiplier']
-        self.trailing_activation = config['risk']['trailing_activation']
-        self.trailing_distance = config['risk']['trailing_distance']
-        self.max_leverage = config['risk']['max_leverage']
-        self.default_rr = config['risk']['default_rr']
+        risk_cfg = config.get('risk', {})
+        self.sl_multiplier = risk_cfg.get('sl_multiplier', 1.0)
+        self.tp_multiplier = risk_cfg.get('tp_multiplier', 2.5)
+        self.trailing_activation = risk_cfg.get('trailing_activation', 0.5)
+        self.trailing_distance = risk_cfg.get('trailing_distance', 1.0)
+        self.max_leverage = risk_cfg.get('max_leverage', 1.5)
+        self.default_rr = risk_cfg.get('default_rr', 2.5)
 
     def calculate(self, asset: str, indicators: dict, signal: dict) -> dict:
         entry = signal['entry']
@@ -33,9 +34,9 @@ class RiskEngine:
             tp = entry * 1.02
 
         if direction == 'LONG':
-            rr = (tp - entry) / (entry - sl) if (entry - sl) > 0 else 0
+            rr = (tp - entry) / (entry - sl) if (entry - sl) > 0 else self.default_rr
         else:
-            rr = (entry - tp) / (sl - entry) if (sl - entry) > 0 else 0
+            rr = (entry - tp) / (sl - entry) if (sl - entry) > 0 else self.default_rr
 
         # Trailing stop
         if direction == 'LONG':
