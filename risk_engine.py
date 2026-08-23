@@ -17,8 +17,11 @@ class RiskEngine:
     def calculate(self, asset: str, indicators: dict, signal: dict) -> dict:
         """Calcula SL, TP, R:R y parámetros de trailing"""
         entry = signal['entry']
-        atr = indicators['atr']
+        atr = indicators.get('atr', 0.01)
         direction = signal['direction']
+
+        if atr <= 0:
+            atr = entry * 0.01  # fallback si ATR es 0
 
         if direction == 'LONG':
             sl = entry - atr * self.sl_multiplier
